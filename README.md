@@ -280,3 +280,270 @@ Here’s your content formatted into **clear paragraph points** for your notes:
   # To remove a Pod.
   ```
 - By default, a newly created Pod **is not accessible** externally. We need **Services** to expose the Pod to users.
+### Pod Lifecycle Events
+- **Scheduled** → Kubernetes assigns the Pod to a node.
+- **Pulled** → Downloads the container image.
+- **Created** → Creates the container.
+- **Started** → The container starts running.
+
+# YAML (Yet Another Markup Language)
+- YAML is a human-readable data format often used for configuration files. It is simple and easy to understand.
+  1. **Key-Value Pairs (Basic Data):** YAML stores data as **key-value pairs**, similar to a dictionary.
+      - Example:
+        ```yaml
+        fruit: apple
+        vegetable: carrot
+        ```
+        - `fruit` is the **key**, and `apple` is the **value**.  
+        - `vegetable` is the **key**, and `carrot` is the **value**.
+  2. **Lists (Arrays):** YAML can store multiple values as a list (also called an **array**).
+      - Example:
+        ```yaml
+        fruits:
+          - orange
+          - apple
+        vegetables:
+          - carrot
+          - tomato
+        ```
+        - The **dash (-)** indicates a list item.  
+        - **Lists maintain order** (first item stays first).  
+  3. **Dictionaries (Maps):** A dictionary (or map) stores **multiple properties** for an item.
+      - Example:
+        ```yaml
+        banana:
+          calories: 105
+          fat: 0.4
+        grapes:
+          calories: 62
+          fat: 0.3
+        ```
+        - `banana` and `grapes` are **keys**.
+        - Inside each key, there are **sub-keys** like `calories` and `fat`.
+      - **Dictionaries are unordered**, meaning their items don’t have a fixed order.
+- Any line that starts with `#` is a comment and is ignored by YAML.
+### Dictionary vs List vs List of Dictionaries
+- **Dictionary (Map)** → Store **different properties** of a **single object**.
+- **List (Array)** → Store **multiple items** of the **same type**.
+- **List of Dictionaries** → Store **detailed information** about **multiple objects**.
+  - **Example of a List of Dictionaries:**
+    ```yaml
+    fruits:
+      - name: banana
+        calories: 105
+        fat: 0.4
+      - name: grapes
+        calories: 62
+        fat: 0.3
+    ```
+    - Each item in `fruits` is a **dictionary inside a list**.
+
+# Kubernetes YAML File
+- Kubernetes uses **YAML files** to define resources like Pods, Deployments, and Services.
+- YAML helps organize configurations in a structured way.
+### Basic Structure of a Kubernetes YAML File
+- Every Kubernetes YAML file has four main parts:
+  1. **apiVersion** – Defines which version of the Kubernetes API to use.
+  2. **kind** – Specifies the type of object (e.g., Pod, Deployment).
+  3. **metadata** – Contains information like name and labels.
+  4. **spec** – Defines the details of the object, like which container to use.
+### Example:
+- **YAML for a Pod:**
+  ```yaml
+  apiVersion: v1
+  kind: Pod
+  metadata:
+    name: myapp-pod
+    labels:
+      app: myapp
+      type: front-end
+  spec:
+    containers:
+      - name: nginx-container
+        image: nginx
+  ```
+- **Explanation of Each Section:**
+  - **apiVersion: v1** → Uses version 1 of the API.
+  - **kind: Pod** → Defines this as a Pod.
+  - **metadata** → Includes:
+    - **name** → The name of the Pod (`myapp-pod`).
+    - **labels** → Tags for identifying this Pod (`app: myapp`, `type: front-end`).
+  - **spec** → Specifies the container details:
+    - **containers** → A list of containers inside the Pod.
+      - **name** → The name of the container (`nginx-container`).
+      - **image** → The Docker image to use (`nginx`).
+- **Creating a Pod in Kubernetes:**
+  1. **Save the YAML file** as `pod-definition.yml`.
+  2. **Run the following command to create the Pod:**
+     ```sh
+     kubectl create -f pod-definition.yml
+     ```
+- **Checking Pod Status:**
+  - **List all running Pods:**
+    ```sh
+    kubectl get pods
+    ```
+    - Shows Pod name, status, and restart count.
+
+  - **Get detailed Pod information:**
+    ```sh
+    kubectl describe pod myapp-pod
+    ```
+    - Displays Pod details like labels, container info, events, and IP address.
+
+### Difference Between `kubectl create -f` and `kubectl apply -f`
+- Both commands are used to create Kubernetes resources from a YAML file, but they have key differences in behavior and use cases.
+  1. **`kubectl create -f pod-definition.yml`:**
+     - **Creates a new resource** but **fails if the resource already exists**.
+     - **Does not support updates**. If you modify the YAML file and run the command again, it will throw an error saying the resource already exists.
+     - Typically used when deploying a resource for the first time.
+  2. **`kubectl apply -f pod-definition.yml`:**
+     - **Creates the resource if it does not exist**, but **updates it if it already exists**.
+     - It **works declaratively**, meaning Kubernetes will only update the parts that have changed in the YAML.
+     - Recommended for managing resources efficiently in a production environment.
+- **Example Scenario:**
+  1. Initial Deployment:
+     ```bash
+     kubectl create -f pod-definition.yml
+     ```
+  2. Modify the YAML file (e.g., change the container image)
+  3. Apply the changes:
+     ```bash
+     kubectl apply -f pod-definition.yml
+     ```
+
+# Kubernetes Controllers
+### Replication Controller
+- **Controllers** in Kubernetes are responsible for monitoring and managing resources.
+- The **Replication Controller** ensures that a specified number of **Pods** are running at all times.
+- **Use of Replication Controller:**
+  1. **High Availability**
+     - If one Pod fails, another will take over to keep the application running.
+     - Even if you need only one Pod, the Replication Controller will restart it if it crashes.
+  2. **Load Balancing & Scaling**
+     - When traffic increases, new Pods can be created automatically.
+     - If a node runs out of resources, new Pods can be scheduled on other nodes.
+#### Creating a Replication Controller (Example: rc-definition.yml)
+- The definition file contains:
+  - `apiVersion: v1` (since it is an older technology)
+  - `kind: ReplicationController`
+  - `metadata` (name, labels, etc.)
+  - `spec` (includes **template** for Pod creation and **replicas** count)
+- ReplicationController YAML File:
+  ```yaml
+  apiVersion: v1
+  kind: ReplicationController
+  metadata:
+    name: myapp-replicationcontroller
+    labels:
+      app: myapp
+      type: front-end
+  spec:
+    replicas: 3
+    selector:
+      type: front-end
+    template:
+      metadata:
+        labels:
+          app: myapp
+          type: front-end
+      spec:
+        containers:
+        - name: nginx-container
+          image: nginx
+  ```
+- **To create a Replication Controller:** `kubectl create -f rc-definition.yml`
+- **To check the Replication Controller:** `kubectl get replicationcontroller`
+- **To check the Pods:** `kubectl get pods`
+### ReplicaSet
+- **Replication Controller** is an older technology. **Replica Set** is the newer, recommended method.
+- Ensures a specific number of Pods are always running.
+- **If a Pod fails**, the ReplicaSet creates a new one. **If extra Pods exist**, the ReplicaSet removes them.
+- Uses **labels and selectors** to identify the Pods it should manage.
+#### Creating a Replica Set (Example: replicaset-definition.yml)
+- The definition file contains:
+  - `apiVersion: apps/v1` (newer API version)
+  - `kind: ReplicaSet`
+  - `metadata` (name, labels, etc.)
+  - `spec` (includes **template** for Pod creation, **replicas** count, and **selector**)
+- The key difference:
+  - **Replica Set** requires a **selector** to match labels with Pods.
+- ReplicaSet YAML File:
+  ```yaml
+  apiVersion: apps/v1
+  kind: ReplicaSet
+  metadata:
+    name: myapp-replicaset
+    labels:
+      app: myapp
+      type: front-end
+  spec:
+    replicas: 3
+    selector:
+      matchLabels:
+        type: front-end
+    template:
+      metadata:
+        labels:
+          app: myapp
+          type: front-end
+      spec:
+        containers:
+        - name: nginx-container
+          image: nginx
+  ```
+- **Commands:**
+  ```sh
+  kubectl create -f replicaset-definition.yml
+  # Creates a ReplicaSet
+  kubectl get replicaset
+  # Lists all ReplicaSets
+  kubectl get pods
+  # Lists Pods
+  kubectl delete replicaset myapp-replicaset
+  # Deletes a ReplicaSet (and its Pods)
+  kubectl replace -f replicaset-definition.yml
+  # Updates a ReplicaSet
+  kubectl scale --replicas=6 -f replicaset-definition.yml
+  # Scales the ReplicaSet to 6 replicas
+  ```
+#### Scaling a ReplicaSet
+- **Increase the number of Pods** from 3 to 6 using:
+  ```sh
+  kubectl scale --replicas=6 -f replicaset-definition.yml
+  kubectl scale replicaset <name_of_replicaset> --replicas=6
+  ```
+- Alternatively, update the **replicas** field in the **YAML file** and run:
+  ```sh
+  kubectl replace -f replicaset-definition.yml
+  ```
+#### Editing a Running ReplicaSet Without a YAML File
+- **Command:**  
+   ```bash
+   kubectl edit replicaset <name_of_replicaset>
+   ```
+   - This opens the ReplicaSet configuration in a text editor.
+   - The file is **temporary** and exists only in Kubernetes memory.
+- **Apply Changes:**
+  - Change the number of desired replicas, Save & Exit. Once saved, Kubernetes automatically applies the changes.
+  - If changes involve **Pod Containers** (e.g., updating the image), simply editing the ReplicaSet **won’t** replace existing Pods.
+    - Delete Existing Pods
+    - The ReplicaSet will automatically create new Pods with the updated configuration.
+### Replication Controller vs. Replica Set
+- **Replication Controller** is an older technology.
+- **Replica Set** is the newer, recommended method.
+- Both serve the same purpose but work slightly differently.
+
+# Labels and Selectors in Kubernetes
+- **Labels** are used to tag Kubernetes objects like **Pods** with specific attributes.
+- **Selectors** help identify and filter objects based on labels.
+- **Example:**
+  - If we label all frontend Pods with `tier: front-end`, a **ReplicaSet** can monitor them using a selector:
+    ```yaml
+    selector:
+      matchLabels:
+        tier: front-end
+    ```  
+### Use of Labels
+- Helps Kubernetes manage and organize Pods efficiently.
+- Allows **ReplicaSets** to identify which Pods to monitor and manage.
