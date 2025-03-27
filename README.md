@@ -216,16 +216,34 @@ Here’s your content formatted into **clear paragraph points** for your notes:
 - **First Install `Container or virtual machine manager`:**
   - Install `Docker`
 - **Then Install Minikube:**
-  - Install `minikube` using Official docs and Start `minikube`
+  - Install `minikube` using Official docs and Start `minikube` with `Docker` driver
     ```sh
-    minikube start
+    minikube start --driver=docker
     ```
   - Verify the Installation
     ```sh
     minikube status
     ```
   ![preview](./Images/Kubernetes2.png)
-  - 
+- **Note:**
+  - When Minikube uses Docker as its driver, it creates an internal network. This allows applications to communicate internally within that network.
+  - However, external access is not directly available. To access applications from outside, we need to expose them using a **NodePort** and use `socat` to forward traffic from the host machine’s IP to the internal Minikube network.
+    ```sh
+    sudo apt update && sudo apt install -y socat
+    # Install Socat.
+    nohup sudo socat TCP-LISTEN:8080,fork TCP:192.168.49.2:30566 &
+    # Run as a background service.
+    # → '8080' is the Host Instance Port
+    # → '192.168.49.2:30556' is the Minikube IP with NodePort.
+    ```
+  ![preview](./Images/Kubernetes3.png)
+  - **Kill the Existing `socat` Process:**
+    ```sh
+    sudo ss -tulnp | grep 8080
+    # Find the Process ID (PID) of the Running 'socat'.
+    sudo kill <pid>
+    # Kill the Existing 'socat' Process.
+    ```
 
 # Pods
 - [Refer Here](https://kubernetes.io/docs/concepts/workloads/pods/) for the Official docs.  
@@ -547,3 +565,239 @@ Here’s your content formatted into **clear paragraph points** for your notes:
 ### Use of Labels
 - Helps Kubernetes manage and organize Pods efficiently.
 - Allows **ReplicaSets** to identify which Pods to monitor and manage.
+
+# Kubernetes Deployment
+- A **Deployment** in Kubernetes is a higher-level object that **manages ReplicaSets and Pods** to ensure **scalability, updates, and rollbacks** efficiently.
+- **Key Features of Deployments:**
+  - Ensures a specified number of Pods are running at all times.
+  - Automatically creates and manages **ReplicaSets**.
+  - Supports **rolling updates** to deploy new versions of an application **without downtime**. New Pods replace old ones step by step.
+  - Provides **rollback capabilities** in case an update fails.
+  - Allows **pausing and resuming** updates for controlled changes.
+### Creating a Deployment (Example: `deployment-definition.yml`)
+- A Deployment file is similar to a ReplicaSet file, but the `kind` is set to **Deployment**.
+- Deployment YAML File:
+  ```yaml
+  apiVersion: apps/v1
+  kind: Deployment
+  metadata:
+    name: myapp-deployment
+    labels:
+      app: myapp
+      type: front-end
+  spec:
+    replicas: 3
+    selector:
+      matchLabels:
+        type: front-end
+    template:
+      metadata:
+        labels:
+          app: myapp
+          type: front-end
+      spec:
+        containers:
+        - name: nginx-container
+          image: nginx
+  ```
+- **Commands:**
+  ```sh
+  kubectl apply -f deployment.yml
+  # Create a Deployment**
+  kubectl get deployments
+  # Get Deployments
+  kubectl get all
+  # Displays the Deployment, ReplicaSets, and running Pods.
+  kubectl set image deployment/myapp-deployment nginx-container=nginx:latest
+  # Updates the Deployment to use a new 'nginx:latest' image. (e.g., Change Image)
+  kubectl rollout undo deployment myapp-deployment
+  # Rollback to the Previous Version
+  kubectl scale deployment myapp-deployment --replicas=5
+  # Scale Deployment (Increases the number of Pods)
+  kubectl edit deployment myapp-deployment
+  # Editing a Deployment Without YAML File (Opens the Deployment configuration for direct editing.)
+  kubectl delete deployment myapp-deployment
+  # Deleting a Deployment (Deletes the Deployment, along with the associated ReplicaSet and Pods.)
+  ```
+### Deployment Updates and Rollbacks
+#### Rollouts and Versioning
+- When you **create** or **update** a deployment, it triggers a **rollout**.
+- A rollout is the process of **gradually updating** your application.
+- Each rollout creates a new **deployment revision** (e.g., Revision 1, Revision 2).
+- If needed, you can **rollback** to a previous version.
+- **Checking Rollout Status & History:**
+  - To check rollout progress:
+    ```
+    kubectl rollout status deployment/myapp-deployment
+    ```
+  - To check previous versions:
+    ```
+    kubectl rollout history deployment/myapp-deployment
+    ```
+#### Deployment Strategies
+- **Recreate Strategy**:
+  - Stops all running instances before deploying the new version.
+  - **Application goes down** temporarily.
+- **Rolling Update (Default Strategy)**:
+  - Updates one instance at a time.
+  - **Application remains available** during the update.
+#### Updating a Deployment
+- Update by modifying the `deployment-definition.yml` file and applying changes:
+  ```
+  kubectl apply -f deployment-definition.yml
+  ```
+- OR update the image directly using:
+  ```
+  kubectl set image deployment/myapp-deployment nginx=nginx:1.9.1
+  ```
+- If using `kubectl set image`, the YAML file may become outdated.
+#### How Upgrades Work
+- A **new ReplicaSet** is created for the updated version.
+- The old ReplicaSet is gradually **scaled down** while the new one is **scaled up**.
+- You can see this using:
+  ```
+  kubectl get replicasets
+  ```
+#### Rolling Back a Deployment
+- If an update has issues, you can **rollback** using:
+  ```
+  kubectl rollout undo deployment/myapp-deployment
+  ```
+- This **removes the new version** and brings back the old one.
+
+# Kubernetes Networking
+- Every **Pod** in Kubernetes gets its own **IP address** (e.g., `10.244.0.2`).
+- This is different from Docker, where each **container** gets an IP.
+- **Pods communicate using these internal IPs** inside the Kubernetes network.
+- The Kubernetes cluster creates a **private network (e.g., `10.244.0.0`)** for all Pods.
+### Single-Node Kubernetes Cluster
+- The **node itself has an IP address** (e.g., `192.168.1.2`).
+- If using **Minikube**, this IP belongs to the **Minikube VM**, not your laptop.
+- **Pods within the node** can talk to each other using their **internal IPs**.
+- **Issue:** Pod IPs may change when Pods restart, so using these IPs for communication is not reliable.
+### Multi-Node Kubernetes Cluster
+- Each **node has its own IP** (e.g., `192.168.1.2`, `192.168.1.3`).
+- Each node assigns **Pod IPs within the same range (`10.244.0.0`)**, which **creates conflicts**.
+- **Kubernetes does NOT automatically configure networking** for multiple nodes.
+- Kubernetes expects **a network solution** where:
+  - **All Pods can communicate with each other without NAT** (Network Address Translation).
+  - **Nodes can communicate with all Pods and vice versa**.
+### Kubernetes Network Solutions
+- To solve multi-node networking issues, we use **CNI (Container Network Interface) plugins** like:
+  - **Flannel**
+  - **Calico**
+  - **WeaveNet**
+  - **Cilium**
+  - **VMware NSX-T** (for VMware environments)
+- Each solution **assigns unique IPs to Pods across nodes** and manages **routing between nodes**.
+### Cluster Networking with Calico
+- **Calico assigns different network addresses** (e.g., `10.244.1.0`, `10.244.2.0`) to different nodes.
+- It **creates a virtual network** where all Pods and Nodes can communicate.
+- Uses **routing techniques** to enable cross-node Pod communication.
+- Once set up, **all Pods can talk to each other using their assigned IPs**.
+
+# Kubernetes Services
+- **Kubernetes Services** help different components inside and outside an application communicate with each other.
+- They allow **pods to interact** with other pods, users, or external data sources.
+- Services help in **loosely coupling** microservices, making communication more manageable.
+- **Example of Communication Issue in Kubernetes:**
+  - Pods run in an **internal network** that is not accessible from the outside.
+  - A pod may have an IP (e.g., `10.244.0.2`), but an external user cannot access it directly.
+  - **Solution:** Use a **Service** to expose the pod externally.
+### Types of Kubernetes Services
+#### 1. ClusterIP (Default Service Type)
+- Used to allow communication between different **Pods** within a Kubernetes cluster.
+- **Pods** (frontend, backend, database) have dynamic IPs, which change when they restart.
+- Creates a **virtual IP** inside the cluster for internal communication.
+- Instead of using pod IPs, **ClusterIP Service** groups multiple pods and provides a **single static IP** inside the cluster.
+- This makes it easier for frontend pods to connect to backend pods, backend to database, etc.
+- **Example Service Definition (YAML):**
+  ```yaml
+  apiVersion: v1
+  kind: Service
+  metadata:
+    name: back-end
+  spec:
+    type: ClusterIP
+    ports:
+      - targetPort: 80
+        port: 80
+    selector:
+      app: myapp
+      type: back-end
+  ```
+- **Commands:**
+  ```bash
+  kubectl create -f service-definition.yml
+  # Creates the Service
+  kubectl get services
+  # Check services
+  ```
+#### 2. NodePort (Exposes Service Outside the Cluster)
+- Used to **expose an application** running in Kubernetes to **external users** (outside the cluster).
+- Exposes a pod on a specific port of a **Kubernetes node**.
+- Assigns a **high-range port (30000–32767)** to the service.
+- External users can access the pod using `http://<Node_IP>:<NodePort>`.
+- **How NodePort Works:**
+  - **3 Ports in NodePort Service:**
+    1. **TargetPort** → The port on the pod (e.g., `80`).
+    2. **Port** → The port on the service (e.g., `80`).
+    3. **NodePort** → The external port on the node (e.g., `30008`).
+  - Traffic flows:
+    - External user → **NodePort** (`30008`) → **Service Port** (`80`) → **TargetPort** (`80` on pod).
+- **Defining a NodePort Service in YAML: `service-definition.yml`**
+  ```yaml
+  apiVersion: v1
+  kind: Service
+  metadata:
+    name: myapp-service
+  spec:
+    type: NodePort
+    ports:
+      - targetPort: 80
+        port: 80
+        nodePort: 30008
+    selector:
+      app: myapp
+  ```  
+  - **Key points:**
+    - **`targetPort`**: Pod’s port (`80`).
+    - **`port`**: Service’s port (`80`).
+    - **`nodePort`**: External access port (`30008`).
+    - **`selector`**: Links service to pods with a label (`app: myapp`).
+- **Commands:**
+  ```bash
+  kubectl create -f service-definition.yml
+  # Creates the Service
+  kubectl get services
+  # Check services
+  ```
+- **Drawback**: Users must know the **Node's IP** and the **NodePort**, which is not ideal.
+#### 3. LoadBalancer (For Cloud Environments)
+- Provides a **single external URL** for the application.
+- Works only in **cloud providers** (AWS, GCP, Azure, etc.).
+- Kubernetes automatically creates and manages a **cloud load balancer**.
+- This LoadBalancer distributes traffic to available **NodePort services**.
+- **Example YAML Definition**:
+  ```yaml
+  apiVersion: v1
+  kind: Service
+  metadata:
+    name: front-end
+  spec:
+    type: LoadBalancer
+    ports:
+      - targetPort: 80
+        port: 80
+    selector:
+      app: myapp
+      type: front-end
+  ```
+- **Commands:**
+  ```bash
+  kubectl create -f service-definition.yml
+  # Creates the Service
+  kubectl get services
+  # Check services
+  ```
+- It assigns an **External IP**, which may take time to be available.
