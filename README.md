@@ -801,3 +801,57 @@ Here’s your content formatted into **clear paragraph points** for your notes:
   # Check services
   ```
 - It assigns an **External IP**, which may take time to be available.
+
+# Microservices Application
+- Microservices architecture is a way of building applications as a collection of small, independent services that communicate with each other. Instead of having one large application, each function is broken down into separate services.
+### Example: Voting Application
+- [Refer Here](https://github.com/dockersamples/example-voting-app) for the Official GitHub Repo.
+- To understand microservices better, let's take an example of a **Voting Application**. It consists of multiple components:
+  1. **Voting App** - Frontend for users to vote (External Access).
+  2. **Result App** - Frontend for displaying voting results (External Access).
+  3. **Redis** - Stores temporary votes (Internal Access).
+  4. **PostgreSQL (DB)** - Stores the final vote count (Internal Access).
+  5. **Worker Node** - Transfers votes from Redis to PostgreSQL (Internal Access).
+- Each of these components is deployed as a **separate container or pod** in Kubernetes.
+- **Service Types:**
+  - **NodePort**: Used for external access to the **Voting App** and **Result App**.
+  - **ClusterIP**: Used for internal communication between **Redis, PostgreSQL, and Worker Node**.
+#### Deploying the Application on Kubernetes
+1. **Create Deployment YAML Files**
+   - Write deployment YAML files for **all five components**.
+   - Ensure PostgreSQL **username** and **password** match the source code (both set to `postgres`).
+   - [Refer Here](https://github.com/SuriBabuKola/Kubernetes/commit/e41df3b659ff5ad5225cf9ef740f2c3b37f69f79) for Deployments Manifest files.
+   - Create all Deployments.
+  ![preview](./Images/Kubernetes4.png)
+2. **Create Kubernetes Services**
+   - **ClusterIP Services:**
+      - Define **ClusterIP services** for **Redis, PostgreSQL, and Worker Node**.
+      - Name the services as per the source code:
+        - **Redis → "redis"**
+        - **PostgreSQL → "db"**
+   - **NodePort Services:**
+      - Expose **Voting App** and **Result App** using **NodePort** service.
+      - This allows external access to these applications.
+   - [Refer Here](https://github.com/SuriBabuKola/Kubernetes/commit/33ee4948209836f376bd12c062095b44777e1c3e) for Services Manifest files.
+   - Create all Services.
+  ![preview](./Images/Kubernetes5.png)
+3. **Get the Service URLs**
+   - Retrieve the NodePort service URLs for **Voting App** and **Result App**.
+   - In **Minikube**, Use `minikube service <service_name> --url` to get URL.
+  ![preview](./Images/Kubernetes6.png)
+4. **Expose Services using Socat** (If using **Minikube** with **Docker** driver)
+   - Use **socat** to make the services accessible from outside the cluster.
+   - Run `nohup sudo socat TCP-LISTEN:<host_port>,fork TCP:<minikube_ip>:<node_port> &`
+  ![preview](./Images/Kubernetes7.png)
+5. **Test the Application**
+   - Open the **Voting App** in a web browser.
+   - Vote for an option and check the **Result App** to see if the vote is counted correctly.
+  ![preview](./Images/Kubernetes8.png)
+#### Handling External Access
+1. **Using NodePort:**
+    - Each service is accessible using the **Node’s IP and a high-end port** (e.g., `192.168.56.70:30035`).
+    - This method is not user-friendly, as users have to remember multiple IP addresses and ports.
+2. **Using a Load Balancer:**
+    - A **Load Balancer** provides a single URL (e.g., `example-vote.com`) that directs traffic to the correct service.
+    - On **cloud platforms (AWS, GCP, Azure)**, Kubernetes automatically provisions a Load Balancer when we set the Service Type to **LoadBalancer**.
+    - On local environments (like VirtualBox), we need to manually configure a Load Balancer using **HAProxy or NGINX**.
