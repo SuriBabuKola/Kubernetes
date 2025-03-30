@@ -832,7 +832,7 @@ Here’s your content formatted into **clear paragraph points** for your notes:
    - **NodePort Services:**
       - Expose **Voting App** and **Result App** using **NodePort** service.
       - This allows external access to these applications.
-   - [Refer Here](https://github.com/SuriBabuKola/Kubernetes/commit/33ee4948209836f376bd12c062095b44777e1c3e) for Services Manifest files.
+   - [Refer Here](https://github.com/SuriBabuKola/Kubernetes/commit/6ea2dbceebbb73515c62b9fc631a44a3e22c5cf8) for Services Manifest files.
    - Create all Services.
   ![preview](./Images/Kubernetes5.png)
 3. **Get the Service URLs**
@@ -855,3 +855,161 @@ Here’s your content formatted into **clear paragraph points** for your notes:
     - A **Load Balancer** provides a single URL (e.g., `example-vote.com`) that directs traffic to the correct service.
     - On **cloud platforms (AWS, GCP, Azure)**, Kubernetes automatically provisions a Load Balancer when we set the Service Type to **LoadBalancer**.
     - On local environments (like VirtualBox), we need to manually configure a Load Balancer using **HAProxy or NGINX**.
+
+# Kubernetes on Cloud
+- Kubernetes on Cloud refers to running Kubernetes clusters on **cloud platforms** like **Google Cloud (GKE), AWS (EKS), and Azure (AKS)** instead of setting up and managing clusters on **on-premise servers**.
+- Cloud providers handle infrastructure, networking, and maintenance, while users focus on deploying and managing applications.
+- **Types of Kubernetes Deployments:**
+  1. **Self-Hosted Kubernetes (Turnkey Solutions)**
+      - You **create and manage** Virtual Machines (VMs) manually.
+      - You **install Kubernetes** using tools like **kOps, KubeOne, or kubeadm**.
+      - You are responsible for **scaling, patching, upgrading, and securing** the cluster.
+      - Example: **Running Kubernetes on AWS EC2 using kOps**.
+  2. **Managed Kubernetes (Hosted Solutions):**
+      - Cloud provider **sets up and manages** Kubernetes for you.
+      - You only **deploy applications**; infrastructure is managed by the provider.
+      - Examples:
+        - **Google Kubernetes Engine (GKE)** – Managed by **Google Cloud**
+        - **Amazon Elastic Kubernetes Service (EKS)** – Managed by **AWS**
+        - **Azure Kubernetes Service (AKS)** – Managed by **Microsoft Azure**
+- **Key Components of Kubernetes on Cloud:**
+  1. **Master Node (Control Plane):**
+      - Manages the cluster and schedules workloads.
+      - In **Managed Kubernetes**, the cloud provider maintains the Master Node.
+  2. **Worker Nodes:**
+      - These run the application workloads (Pods).
+      - Managed by the cloud provider in Hosted Solutions.
+  3. **Load Balancer:**
+      - Exposes applications to the internet.
+      - Managed Kubernetes solutions provide built-in **Load Balancer Services**.
+  4. **Auto Scaling:**
+      - Automatically **adds or removes** nodes based on demand.
+      - Enabled by **Horizontal Pod Autoscaler (HPA)**.
+  5. **Networking:**
+      - Each cloud provider has its own networking setup:
+        - **GKE**: Uses **Google VPC**
+        - **EKS**: Uses **AWS VPC & Elastic Load Balancers (ELB)**
+        - **AKS**: Uses **Azure VNet**
+- **Benefits of Kubernetes on Cloud:**
+  - **Easy to Set Up** – No need to manually configure servers.
+  - **Automatic Scaling** – Increases or decreases resources based on traffic.
+  - **Security & Updates** – Cloud provider manages security patches and upgrades.
+  - **Integrated Networking** – Built-in **Load Balancers** and **Ingress controllers**.
+  - **Monitoring & Logging** – Cloud providers offer built-in monitoring tools.
+### 1. Google Kubernetes Engine (GKE)
+#### Steps to Create Cluster
+- Go to Google Cloud
+- Go to Navigation Bar, Choose `Kubernetes Engine` and click `Clusters`
+- In `Clusters`, click `Create` and choose `Standard: You manage your cluster`
+- In `Cluster basics`,
+  - Give `Name`
+  - Select `Location type` (Regional) and `Region`
+  - In `Release channel`, select `Target version` (Kubernetes Version)
+- In `Node pools`, select `default-pool`
+  - In `Node pool details`, give `Name` and  `Size` (Number of nodes)
+- In `Node pools`, select `Nodes` to `Configure node settings`
+- Go with all remaining default settings and click `Create`.
+#### Connect to Cluster
+- Go to Created Cluster and click `Connect`
+- Click `Run in Cloud Shell` and execute that Command (This command setup connection with GKS Cluster)
+- In Cloud Shell `kubectl` is already installed and Run `kubectl get nodes` to verify the cluster.
+  ![preview](./Images/Kubernetes9.png)
+#### Take Same Voting App Example
+- [Refer Here](https://github.com/dockersamples/example-voting-app) for the Official GitHub Repo.
+- [Refer Here](https://github.com/SuriBabuKola/Kubernetes/commit/5e5535f280c9ca338e4f2a8a1b2e286d42116903) for Deployments and Services Manifest files.
+- In Service Manifest files of `Vote App` and `Result App`, use Type `LoadBalancer` for External access.
+- Create and Verify all the Deployments and Services
+  ![preview](./Images/Kubernetes10.png)
+- Then Test the Application:
+   - Open the **Voting App** in a web browser.
+   - Vote for an option and check the **Result App** to see if the vote is counted correctly.
+  ![preview](./Images/Kubernetes12.png)
+#### Viewing Services in Cluster
+- Go to `Networking` → `Gateways, Services & Ingress`
+- Select `Services`
+- Click on the service name to see details
+- Open the `Endpoints` to access the application.
+  ![preview](./Images/Kubernetes11.png)
+### 2. Amazon Elastic Kubernetes Service (EKS)
+- [Refer Here](https://docs.aws.amazon.com/eks/latest/userguide/setting-up.html) for the Official docs.
+  - Install and Configure `AWS CLI`
+    - [Refer Here](https://docs.aws.amazon.com/cli/latest/userguide/getting-started-install.html) for Installation
+    - [Refer Here](https://docs.aws.amazon.com/eks/latest/userguide/install-awscli.html) for Configuration
+  - Install `Kubectl` [Refer Here](https://docs.aws.amazon.com/eks/latest/userguide/install-kubectl.html#kubectl-install-update)
+  - Create Cluster [Refer Here](https://docs.aws.amazon.com/eks/latest/userguide/create-cluster.html#step2-console)
+  - Update kubeconfig `aws eks update-kubeconfig --region <region-code> --name <cluster_name>`
+  ![preview](./Images/Kubernetes13.png)
+    - Check Nodes `kubectl get nodes`
+  ![preview](./Images/Kubernetes14.png)
+#### Steps to Create Cluster
+- Go to AWS EKS.
+- Go to `Clusters` and click `Create cluster`
+- **Step-1** Configure cluster
+  - In `Configuration options`, Choose `Custom configuration`
+  - In `Cluster configuration`,
+    - Give `Name`
+    - Create and Select `Cluster IAM role` (Click `Create recommended role`, Create Role with given default options)
+  - In `Kubernetes version settings`, choose `Kubernetes version`
+  - In `Auto Mode Compute`,
+    - Create and Select `Node IAM role` (Click `Create recommended role`, Create Role with given default options)
+- **Step-2** Specify networking
+  - Select `VPC` and `Subnets`
+  - Before proceeding, go to `VPC` → `Subnets` and  click on each Subnet and **Add Tags Manually**:
+    1. **Public Subnets (for external LoadBalancers)**
+        - Key: `kubernetes.io/role/elb`
+        - Value: `1`
+    2. **Private Subnets (for internal LoadBalancers)**
+        - Key: `kubernetes.io/role/internal-elb`
+        - Value: `1`
+    3. **All Subnets (for EKS Cluster discovery)**
+        - Key: `kubernetes.io/cluster/<your-cluster-name>`
+        - Value: `owned`
+    4. After adding these tags, continue with cluster creation.
+  - In `Cluster endpoint access`, choose `Public and private`
+- **Step-3** Configure observability, **Step-4** Select add-ons and **Step-5** Configure selected add-ons settings
+  - Go with default settings
+- **Step-6** Review and create
+  - Review all details and click `Create`.
+#### Take Same Voting App Example
+- [Refer Here](https://github.com/dockersamples/example-voting-app) for the Official GitHub Repo.
+- [Refer Here](https://github.com/SuriBabuKola/Kubernetes/commit/6d692d0639a2e5ee2130da75381ae1fce6665b8e) for Deployments and Services Manifest files.
+- In Service Manifest files of `Vote App` and `Result App`,
+  - Use Type `LoadBalancer` for External access.
+  - Also add `annotations` for LoadBalancer `internet-facing` (For LoadBalancer External access)
+    ```yaml
+    annotations:
+      service.beta.kubernetes.io/aws-load-balancer-scheme: internet-facing
+    ```
+- Create and Verify all the Deployments and Services
+  ![preview](./Images/Kubernetes15.png)
+- Then Test the Application:
+   - Open the **Voting App** in a web browser.
+   - Vote for an option and check the **Result App** to see if the vote is counted correctly.
+  ![preview](./Images/Kubernetes16.png)
+### 3. Azure Kubernetes Service (AKS)
+#### Steps to Create Cluster
+- Go to Azure, search for `AKS` and select `Kubernetes services`
+- Click `Create` and select `Kubernetes cluster`
+- In `Basics`
+  - Create and select `Resource group`
+  - Give `Kubernetes cluster name`
+- Go with all remaining default settings
+- In `Review + create`,
+  - Review all details and click `Create`.
+- After create, click `Go to resource`.
+#### Connect to Cluster
+- Go to Cluster, click `Connect` and select `Cloud shell`
+- Go to `Cloud Shell`, run `Set the cluster subscription` and `Download cluster credentials` commands from Cluster Connect
+  ![preview](./Images/Kubernetes17.png)
+- Then verify the Cluster connection using `kubectl get nodes`
+  ![preview](./Images/Kubernetes18.png)
+#### Take Same Voting App Example
+- [Refer Here](https://github.com/dockersamples/example-voting-app) for the Official GitHub Repo.
+- [Refer Here](https://github.com/SuriBabuKola/Kubernetes/commit/6685ecdc61a9de4574df26a29f49a7781b391157) for Deployments and Services Manifest files.
+- In Service Manifest files of `Vote App` and `Result App`, use Type `LoadBalancer` for External access.
+- Create and Verify all the Deployments and Services
+  ![preview](./Images/Kubernetes19.png)
+- Then Test the Application:
+   - Open the **Voting App** in a web browser.
+   - Vote for an option and check the **Result App** to see if the vote is counted correctly.
+  ![preview](./Images/Kubernetes20.png)
