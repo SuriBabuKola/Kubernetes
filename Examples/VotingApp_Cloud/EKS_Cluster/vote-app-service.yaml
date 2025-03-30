@@ -1,0 +1,17 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: vote-app
+  labels:
+    name: vote-app
+    app: demo-voting-app
+  annotations:
+    service.beta.kubernetes.io/aws-load-balancer-scheme: internet-facing
+spec:
+  type: LoadBalancer
+  selector:
+    name: vote-app
+    app: demo-voting-app
+  ports:
+    - port: 80
+      targetPort: 80
