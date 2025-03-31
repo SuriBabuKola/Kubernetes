@@ -190,7 +190,30 @@ Here’s your content formatted into **clear paragraph points** for your notes:
 - As a result, users need to manually set the **CRI endpoint** in `crictl` to ensure proper communication with the container runtime.
 - This update was introduced to improve flexibility and compatibility across different Kubernetes environments.
 
-# Setup Kubernetes using Minikube
+# Minikube
+- Minikube is a tool that helps you **run Kubernetes on your local machine**.
+- It creates a **small, single-node Kubernetes cluster** for testing and learning.
+- This makes it easy to experiment with Kubernetes **without setting up multiple servers**.
+- **Use of Minikube:**
+  - **Kubernetes has many components** (API Server, Key-Value Store, Controller, Scheduler, Kubelet, and Container Runtime).
+  - Setting up these components **manually** on different machines takes a lot of **time and effort**.
+  - Minikube **bundles** all of these into a **single package**, so you don’t have to install each component separately.
+- **Working of Minikube:**
+  - It comes as an **ISO image** that contains everything needed to run a Kubernetes cluster.
+  - When you install and start Minikube, it **automatically sets up a Kubernetes environment**.
+  - It creates a **single virtual machine** that acts as both the **Master and Worker node**.
+- **Prerequisites to Use Minikube:**
+  1. **Install kubectl** (Kubernetes command-line tool).
+  2. **Download Minikube** from the official website.
+  3. **Run Minikube** to start a Kubernetes cluster on your local system.
+- **Basic Commands:**
+  ```sh
+  minikube start        # Starts Minikube
+  kubectl get nodes     # Checks if Minikube is running
+  minikube dashboard    # Opens the Minikube dashboard
+  minikube stop         # Stops Minikube
+  ```
+### Setup Kubernetes using Minikube
 - [Refer Here](https://kubernetes.io/docs/tasks/tools/) for the Official docs.
 - We install `minikube` on Ubuntu Linux Instance.
   - **The Resource Requirements:**
@@ -204,14 +227,14 @@ Here’s your content formatted into **clear paragraph points** for your notes:
     - `10251` → Kube-scheduler
     - `10252` → Kube-controller-manager
     - `30000-32767` → NodePort services (for exposing applications)
-### First Install `kubectl`
+#### First Install `kubectl`
   - [Refer Here](https://kubernetes.io/docs/tasks/tools/#kubectl) for the Official docs.
   - Install `kubectl` using Official docs and Verify the Installation
     ```sh
     kubectl version --client
     ```
   ![preview](./Images/Kubernetes1.png)
-### Install `minikube`
+#### Install `minikube`
 - [Refer Here](https://minikube.sigs.k8s.io/docs/start/?arch=%2Flinux%2Fx86-64%2Fstable%2Fbinary+download) for the Official docs.
 - **First Install `Container or virtual machine manager`:**
   - Install `Docker`
@@ -1013,3 +1036,156 @@ Here’s your content formatted into **clear paragraph points** for your notes:
    - Open the **Voting App** in a web browser.
    - Vote for an option and check the **Result App** to see if the vote is counted correctly.
   ![preview](./Images/Kubernetes20.png)
+
+# Kubeadm (Multi-Node Kubernetes Cluster)
+- Kubeadm is a tool that **helps set up a multi-node Kubernetes cluster easily**.
+- Instead of manually installing and configuring **each Kubernetes component**, Kubeadm **automates** the process.
+- It ensures that **all nodes (Master & Workers) are correctly configured** and can communicate.
+- **Components in a Kubernetes Cluster:**
+  1. **Master Node** (Manages the cluster)
+     - **kube-apiserver** → Handles communication between components.
+     - **etcd** → Stores cluster data.
+     - **controller-manager** → Manages controllers (Node, Replica).
+  2. **Worker Nodes** (Runs application workloads)
+     - **kubelet** → Communicates with the Master node.
+     - **Container Runtime** → Runs containers (like containerd or Docker).
+- **Steps to Set Up a Multi-Node Cluster with Kubeadm:**
+  1. **Have Multiple Machines or VMs:**
+     - You need at least **two or more machines** (one for Master, others for Worker nodes).
+     - They should have **Ubuntu, CentOS, or another supported OS**.
+  2. **Install Container Runtime (Containerd) on All Nodes:**
+     - Kubernetes requires a **container runtime** to run workloads.
+     - Install **containerd** on all machines.
+  3. **Install Kubeadm on All Nodes:**
+     - Install `kubeadm`, `kubelet`, and `kubectl` on **each node**.
+     - These tools help manage the Kubernetes cluster.
+  4. **Initialize Kubernetes on the Master Node:**
+     - Run the Initialize command **only on the Master node** `sudo kubeadm init`
+     - This installs all required components on the **Master node**.
+     - After initialization, copy and run the `kubeadm join` command on Worker nodes (provided in the output).
+  5. **Set Up the Pod Network:**
+     - Kubernetes needs a **special networking solution** for communication between nodes.  
+     - Choose a **Pod Network Add-On** like **Flannel, Calico, or Weave**.  
+  6. **Join Worker Nodes to the Cluster:**
+     - On **each Worker Node**, run the `kubeadm join` command (from Step 4).
+     - This connects them to the **Master node**.
+  7. **Verify the Cluster Setup:**
+     - Check if all nodes have joined the cluster `kubectl get nodes`
+     - Once all nodes are connected, you can **deploy applications** to Kubernetes.
+- **Use of Kubeadm:**
+  - **Easy Setup** → Automates complex tasks.
+  - **Standardized** → Follows best practices.
+  - **Flexible** → Works with different networking solutions.
+  - **Production-Ready** → Used in real-world Kubernetes setups.
+### Setup Kubernetes using Kubeadm
+- [Refer Here](https://kubernetes.io/docs/setup/production-environment/tools/kubeadm/install-kubeadm/) for the Official docs.
+- **Step:1** Setup Virtual Machines (VMs)
+  - Create **2 Ubuntu VMs** (1-Master & 1-Worker).
+    - **Note:** For Good Practice, Create 3 Ubuntu VMs (1-Master & 2-Workers).
+  - Each VM should have at least **2 vCPUs** and **4GB RAM**.
+  - Ensure all VMs **can communicate** with each other.
+  - [Refer Here](https://kubernetes.io/docs/reference/networking/ports-and-protocols/) for the Official docs of Ports and Protocols.
+- **Step:2** Disable Swap (Required for Kubernetes)
+  - [Refer Here](https://kubernetes.io/docs/setup/production-environment/tools/kubeadm/install-kubeadm/#swap-configuration) for the Official docs.
+    ```bash
+    sudo swapoff -a
+    sudo sed -i '/ swap / s/^/#/' /etc/fstab  # Disable swap permanently
+    ```
+- **Step:3** Install Container Runtime
+  - [Refer Here](https://kubernetes.io/docs/setup/production-environment/container-runtimes/) for the Official docs.
+  - Install `Docker Engine` as the Container Runtime
+    ```bash
+    curl -fsSL https://get.docker.com -o install-docker.sh
+    sudo sh install-docker.sh
+    sudo usermod -aG docker <your-username>
+    exit  # Re-login for changes to take effect
+    ```
+- **Step:4** Install Kubeadm, Kubelet, and Kubectl
+  - [Refer Here](https://kubernetes.io/docs/setup/production-environment/tools/kubeadm/install-kubeadm/#installing-kubeadm-kubelet-and-kubectl) for the Official docs.
+    ```bash
+    sudo apt-get update
+    sudo apt-get install -y apt-transport-https ca-certificates curl gpg
+    # Add Kubernetes repository key
+    curl -fsSL https://pkgs.k8s.io/core:/stable:/v1.32/deb/Release.key | sudo gpg --dearmor -o /etc/apt/keyrings/kubernetes-apt-keyring.gpg
+    # Add Kubernetes repository
+    echo 'deb [signed-by=/etc/apt/keyrings/kubernetes-apt-keyring.gpg] https://pkgs.k8s.io/core:/stable:/v1.32/deb/ /' | sudo tee /etc/apt/sources.list.d/kubernetes.list
+    # Install Kubernetes components
+    sudo apt-get update
+    sudo apt-get install -y kubelet kubeadm kubectl
+    sudo apt-mark hold kubelet kubeadm kubectl
+    sudo systemctl enable --now kubelet
+    ```
+- **Step:5** Install CRI-Dockerd (Docker Shim for Kubernetes)
+  - [Refer Here](https://mirantis.github.io/cri-dockerd/usage/install/) for the Official docs.
+  - Click on `releases page` and Navigate to `Assets` of required Version.
+  - Copy the link address of required file based on OS (In ourcase, `cri-dockerd_0.3.15.3-0.ubuntu-jammy_amd64.deb`).
+    ```bash
+    wget https://github.com/Mirantis/cri-dockerd/releases/download/v0.3.15/cri-dockerd_0.3.15.3-0.ubuntu-jammy_amd64.deb
+    sudo dpkg -i cri-dockerd_0.3.15.3-0.ubuntu-jammy_amd64.deb
+    ```
+- **Do all the above Steps on both the Master and Worker nodes.**
+- **Step:6** Initialize Kubernetes Cluster (Only on Master Node)
+  - [Refer Here](https://kubernetes.io/docs/setup/production-environment/tools/kubeadm/create-cluster-kubeadm/) for the Official docs.
+    ```bash
+    sudo kubeadm init --pod-network-cidr=10.244.0.0/16 --cri-socket unix:///var/run/cri-dockerd.sock
+    ```
+    - `--pod-network-cidr=10.244.0.0/16` → Needed for Pod Networking.
+    - `--cri-socket` → Ensures Kubernetes uses **cri-dockerd** instead of Docker’s default socket.
+  - When executed this command will give the output as shown below
+    ```
+    Your Kubernetes control-plane has initialized successfully!
+
+    To start using your cluster, you need to run the following as a regular user:
+
+      mkdir -p $HOME/.kube
+      sudo cp -i /etc/kubernetes/admin.conf $HOME/.kube/config
+      sudo chown $(id -u):$(id -g) $HOME/.kube/config
+
+    Alternatively, if you are the root user, you can run:
+
+      export KUBECONFIG=/etc/kubernetes/admin.conf
+
+    You should now deploy a pod network to the cluster.
+    Run "kubectl apply -f [podnetwork].yaml" with one of the options listed at:
+      https://kubernetes.io/docs/concepts/cluster-administration/addons/
+
+    Then you can join any number of worker nodes by running the following on each as root:
+
+    kubeadm join 10.0.0.4:6443 --token mwmrc9.izwj0p9gb7ni1ea6 \
+            --discovery-token-ca-cert-hash sha256:2c889451266a13dac142f94fa52a526c1be45b4822939ce445914ae228ad1ef0
+    ```
+- **Step:7** Configure kubectl on Master Node
+  - Use the commands of `To start using your cluster, you need to run the following as a regular user`
+    ```bash
+    mkdir -p $HOME/.kube
+    sudo cp -i /etc/kubernetes/admin.conf $HOME/.kube/config
+    sudo chown $(id -u):$(id -g) $HOME/.kube/config
+    ```
+  - For Root User: `export KUBECONFIG=/etc/kubernetes/admin.conf`
+- **Step:8** Deploy `Weave Net` CNI (For Pod Networking)
+  - [Refer Here](https://kubernetes.io/docs/concepts/cluster-administration/addons/) for the Official docs.
+  - Click on the link of `deploy a pod network to the cluster`
+    - In that choose `Weave Net` [Refer Here](https://github.com/rajch/weave?tab=readme-ov-file#weave-net)
+    - Run the `Using Weave Net on Kubernetes` command
+      ```bash
+      kubectl apply -f https://reweave.azurewebsites.net/k8s/v1.29/net.yaml
+      ```
+  - `Weave Net` enables communication between Pods across nodes.
+  - Verify all Pods should be in `Running` Status.
+  ![preview](./Images/Kubernetes23.png)
+- **Step:9** Join Worker Nodes to Cluster
+  - On **each Worker Node**, use the command given by `kubeadm init` on Master including with `--cri-socket unix:///var/run/cri-dockerd.sock`:
+    ```bash
+    sudo kubeadm join 10.0.0.4:6443 --token mwmrc9.izwj0p9gb7ni1ea6 \
+            --cri-socket unix:///var/run/cri-dockerd.sock \
+            --discovery-token-ca-cert-hash sha256:2c889451266a13dac142f94fa52a526c1be45b4822939ce445914ae228ad1ef0
+    ```
+- **Step:10** Verify Cluster Setup
+  - Run the `kubectl get nodes` command on **Master Node**.
+  ![preview](./Images/Kubernetes21.png)
+    - All nodes (Master & Workers) should be in "Ready" state.
+- **Step:11** Deploy an Applications using Kubernetes
+  - Create Nginx Deployment along with Service, Get the Status, Access the Application and Delete.
+  ![preview](./Images/Kubernetes22.png)
+  - When using a **NodePort** service in Kubernetes, you can **use any node's IP address** in your cluster, as long as the **NodePort** is open and accessible on that node. This is because a **NodePort** exposes the service on the same port across all nodes in the cluster.
+  ![preview](./Images/Kubernetes24.png)
